@@ -172,7 +172,7 @@
                         mode: 'no-cors',
                         body: JSON.stringify(config)
                     });
-                    setMsg({ type: 'success', text: '설정이 성공적으로 저장되었습니다.' });
+                    setMsg({ type: 'success', text: '설정이 저장되었습니다!' });
                     setTimeout(() => setMsg({ type: '', text: '' }), 3000);
                 } catch (err) {
                     alert('저장 중 오류가 발생했습니다.');
@@ -210,9 +210,17 @@
 
             const copyShareLink = () => {
                 const url = `${window.location.origin}${window.location.pathname}?id=${appId}`;
-                navigator.clipboard.writeText(url);
-                setMsg({ type: 'success', text: '링크가 복사되었습니다.' });
-                setTimeout(() => setMsg({ type: '', text: '' }), 2000);
+                
+                // 안정적인 복사 로직 (Input 생성 후 execCommand 사용)
+                const tempInput = document.createElement('input');
+                tempInput.value = url;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+
+                setMsg({ type: 'success', text: '주소가 복사되었습니다!' });
+                setTimeout(() => setMsg({ type: '', text: '' }), 3000);
             };
 
             // 비밀번호 확인 로직
@@ -240,6 +248,18 @@
             return (
                 <div className="max-w-md mx-auto min-h-screen flex flex-col relative bg-[#fdf2f8]/30 overflow-hidden border-x border-pink-100">
                     
+                    {/* 알림 메시지 (상단 고정 팝업 형식) */}
+                    {msg.text && (
+                        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[150] w-[80%] max-w-xs animate-in slide-in-from-top duration-500">
+                            <div className={`p-4 rounded-3xl text-center font-bold text-sm border-2 shadow-xl ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+                                <div className="flex items-center justify-center gap-2">
+                                    <span>{msg.type === 'success' ? '✨' : '⚠️'}</span>
+                                    {msg.text}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* 배경 장식 고양이들 */}
                     <div className="absolute top-10 left-6 text-2xl opacity-20 floating">♤</div>
                     <div className="absolute top-40 right-8 text-2xl opacity-20 floating delay-150">♧</div>
@@ -299,7 +319,7 @@
                                     <h2 className="text-lg font-bold text-pink-500 flex items-center gap-2">
                                         <span>⚙️</span> 환경 설정
                                     </h2>
-                                    <button onClick={copyShareLink} className="text-xs bg-pink-50 text-pink-500 px-4 py-2 rounded-full font-bold border border-pink-100">
+                                    <button onClick={copyShareLink} className="bubble-btn text-xs bg-pink-50 text-pink-500 px-4 py-2 rounded-full font-bold border border-pink-100">
                                         주소 복사
                                     </button>
                                 </div>
@@ -348,12 +368,6 @@
                                         설정 저장하기
                                     </button>
                                 </form>
-                            </div>
-                        )}
-
-                        {msg.text && (
-                            <div className={`mt-8 p-5 rounded-3xl text-center font-bold text-sm border-2 animate-in slide-in-from-top duration-500 ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
-                                {msg.text}
                             </div>
                         )}
                     </main>
