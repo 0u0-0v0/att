@@ -90,7 +90,7 @@
 
                 try {
                     await fetch(formResponseUrl, { method: 'POST', mode: 'no-cors', body: formData.toString() });
-                    setMsg({ type: 'success', text: `${studentName}님, 출석 완료!` });
+                    setMsg({ type: 'success', text: `${studentName}, 출석 완료!` });
                     setStudentId(''); setStudentName(''); setReason('');
                     setTimeout(() => setMsg({ type: '', text: '' }), 4000);
                 } catch (err) {
