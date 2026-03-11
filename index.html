@@ -111,10 +111,11 @@
             const [isConfigLoading, setIsConfigLoading] = useState(true);
             const [currentTime, setCurrentTime] = useState(new Date());
             
-            // 비밀번호 모달 관련 상태
+            // 비밀번호 모달 및 표시 토글 관련 상태
             const [showPassModal, setShowPassModal] = useState(false);
             const [passInput, setPassInput] = useState('');
             const [passError, setPassError] = useState(false);
+            const [showConfigPass, setShowConfigPass] = useState(false);
 
             const [config, setConfig] = useState({
                 id: appId, className: '', formUrl: '', passcode: '0000',
@@ -166,12 +167,15 @@
             const handleSaveSettings = async (e) => {
                 e.preventDefault();
                 setIsLoading(true);
+                setMsg({ type: '', text: '' }); // 이전 메시지 초기화
+                
                 try {
                     await fetch(GOOGLE_SCRIPT_URL, {
                         method: 'POST',
                         mode: 'no-cors',
                         body: JSON.stringify(config)
                     });
+                    // 알림 표시
                     setMsg({ type: 'success', text: '설정이 저장되었습니다!' });
                     setTimeout(() => setMsg({ type: '', text: '' }), 3000);
                 } catch (err) {
@@ -211,7 +215,6 @@
             const copyShareLink = () => {
                 const url = `${window.location.origin}${window.location.pathname}?id=${appId}`;
                 
-                // 안정적인 복사 로직 (Input 생성 후 execCommand 사용)
                 const tempInput = document.createElement('input');
                 tempInput.value = url;
                 document.body.appendChild(tempInput);
@@ -223,9 +226,8 @@
                 setTimeout(() => setMsg({ type: '', text: '' }), 3000);
             };
 
-            // 비밀번호 확인 로직
             const handleSettingsAccess = () => {
-                if (view === 'settings') return; // 이미 설정창이면 무시
+                if (view === 'settings') return; 
                 setShowPassModal(true);
                 setPassInput('');
                 setPassError(false);
@@ -357,15 +359,28 @@
                                             <label className="text-xs font-bold text-pink-500 ml-1 flex items-center gap-1">
                                                 <span>🔒</span> 관리자 비밀번호 변경
                                             </label>
-                                            <input type="password" 
-                                                   className="w-full p-3 border-b-2 border-pink-100 outline-none focus:border-pink-300 bg-pink-50/30 font-bold" 
-                                                   placeholder="초기 비번: 0000"
-                                                   value={config.passcode} onChange={e=>setConfig({...config, passcode:e.target.value})} required />
+                                            <div className="relative">
+                                                <input 
+                                                    type={showConfigPass ? "text" : "password"} 
+                                                    className="w-full p-3 border-b-2 border-pink-100 outline-none focus:border-pink-300 bg-pink-50/30 font-bold pr-12 transition-all" 
+                                                    placeholder="초기 비번: 0000"
+                                                    value={config.passcode} 
+                                                    onChange={e=>setConfig({...config, passcode:e.target.value})} 
+                                                    required 
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setShowConfigPass(!showConfigPass)}
+                                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-pink-300 p-2 hover:text-pink-500 transition-colors"
+                                                >
+                                                    <i className={`fa-solid ${showConfigPass ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     
                                     <button disabled={isLoading} className="bubble-btn w-full bg-slate-700 text-white font-bold py-4 rounded-2xl shadow-md mt-4">
-                                        설정 저장하기
+                                        {isLoading ? <i className="fa-solid fa-spinner loading-spinner"></i> : "설정 저장하기"}
                                     </button>
                                 </form>
                             </div>
