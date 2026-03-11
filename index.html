@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>출석 관리 플랫폼</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @font-face { 
+            font-family: 'NostalgicGellyRoll'; 
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-1@1.0/Griun_Gellyroll-Rg.woff2') format('woff2'); 
+        }
+        * { font-family: 'NostalgicGellyRoll', cursive !important; }
+        input::placeholder, textarea::placeholder { opacity: 0.5; font-size: 0.85rem; }
+        .loading-spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // ★★★ 선생님의 구글 웹 앱 URL을 여기에 붙여넣으세요 ★★★
+        const GOOGLE_SCRIPT_URL = "여기에_복사한_URL_넣기";
+
+        function App() {
+            const [appId, setAppId] = useState(new URLSearchParams(window.location.search).get('id') || 'default');
+            const [view, setView] = useState('checkin');
+            const [isLoading, setIsLoading] = useState(false);
+            const [isConfigLoading, setIsConfigLoading] = useState(true);
+            const [config, setConfig] = useState({
+                id: appId, className: '', formUrl: '', passcode: '0000',
+                studentIdEntry: '', nameEntry: '', reasonEntry: ''
+            });
+            const [studentId, setStudentId] = useState('');
+            const [studentName, setStudentName] = useState('');
+            const [reason, setReason] = useState('');
+            const [msg, setMsg] = useState({ type: '', text: '' });
+
+            useEffect(() => {
+                setIsConfigLoading(true);
+                fetch(`${GOOGLE_SCRIPT_URL}?id=${appId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.className) setConfig(data);
+                        else setConfig(prev => ({ ...prev, id: appId }));
+                        setIsConfigLoading(false);
+                    })
+                    .catch(() => setIsConfigLoading(false));
+            }, [appId]);
+
+            const handleSaveSettings = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                try {
+                    await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify(config)
+                    });
+                    setMsg({ type: 'success', text: '설정이 저장되었습니다!' });
+                    setTimeout(() => setMsg({ type: '', text: '' }), 3000);
+                } catch (err) {
+                    alert('저장 중 오류 발생');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleCheckIn = async (e) => {
+                e.preventDefault();
+                if (!config.formUrl) return alert('설정 탭에서 구글 폼 주소를 먼저 입력해주세요.');
+                
+                setIsLoading(true);
+                const formResponseUrl = config.formUrl.replace('/viewform', '/formResponse');
+                const formData = new URLSearchParams();
+                
+                const fId = (id) => id.toString().startsWith('entry.') ? id : `entry.${id}`;
+                formData.append(fId(config.studentIdEntry), studentId);
+                formData.append(fId(config.nameEntry), studentName);
+                if (config.reasonEntry && reason) {
+                    formData.append(fId(config.reasonEntry), reason);
+                }
+
+                try {
+                    await fetch(formResponseUrl, { method: 'POST', mode: 'no-cors', body: formData.toString() });
+                    setMsg({ type: 'success', text: `${studentName}님, 출석 완료!` });
+                    setStudentId(''); setStudentName(''); setReason('');
+                    setTimeout(() => setMsg({ type: '', text: '' }), 4000);
+                } catch (err) {
+                    setMsg({ type: 'error', text: '전송 실패' });
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const copyShareLink = () => {
+                const url = `${window.location.origin}${window.location.pathname}?id=${appId}`;
+                navigator.clipboard.writeText(url);
+                alert('수업 링크 복사 완료!');
+            };
+
+            if (isConfigLoading) return (
+                <div className="flex flex-col items-center justify-center h-screen space-y-4">
+                    <i className="fas fa-spinner loading-spinner text-4xl text-indigo-500"></i>
+                    <p className="font-bold text-slate-400">서버 로딩 중...</p>
+                </div>
+            );
+
+            return (
+                <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl flex flex-col relative">
+                    <header className="bg-slate-900 text-white p-6 pt-12 text-center shadow-md">
+                        <h1 className="text-2xl font-bold tracking-tight">{config.className || "출석 관리 시스템"}</h1>
+                        <p className="text-[10px] uppercase tracking-widest text-indigo-400 mt-2 font-bold">Class ID: {appId}</p>
+                    </header>
+
+                    <main className="p-6 flex-grow pb-28">
+                        {view === 'checkin' ? (
+                            <div className="space-y-6 animate-in fade-in duration-700">
+                                <div className="text-center py-4">
+                                    <div className="text-5xl font-light text-slate-800 tabular-nums">
+                                        {new Date().toLocaleTimeString('ko-KR', {hour12:false, hour:'2-digit', minute:'2-digit'})}
+                                    </div>
+                                    <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest">Attendance Check</p>
+                                </div>
+
+                                <form onSubmit={handleCheckIn} className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Student ID (학번)</label>
+                                        <input className="w-full p-4 border-2 border-slate-100 rounded-2xl bg-slate-50 focus:border-indigo-500 outline-none font-bold text-lg" 
+                                               placeholder="예: 30417" value={studentId} onChange={e=>setStudentId(e.target.value)} required />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Name (성명)</label>
+                                        <input className="w-full p-4 border-2 border-slate-100 rounded-2xl bg-slate-50 focus:border-indigo-500 outline-none font-bold text-lg" 
+                                               placeholder="성함을 입력하세요" value={studentName} onChange={e=>setStudentName(e.target.value)} required />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Reason (지각/조퇴 사유)</label>
+                                        <textarea className="w-full p-4 border-2 border-slate-100 rounded-2xl bg-slate-50 focus:border-indigo-500 outline-none font-bold min-h-[100px] resize-none" 
+                                               placeholder="지각이나 조퇴인 경우 사유를 적어주세요 (선택)" value={reason} onChange={e=>setReason(e.target.value)} />
+                                    </div>
+                                    <button disabled={isLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl shadow-xl transition-all text-xl mt-4 flex items-center justify-center gap-3">
+                                        {isLoading ? <i className="fas fa-spinner loading-spinner"></i> : <i className="fas fa-fingerprint"></i>}
+                                        출석 확인하기
+                                    </button>
+                                </form>
+                            </div>
+                        ) : (
+                            <div className="space-y-5 animate-in slide-in-from-right duration-300">
+                                <div className="flex justify-between items-center border-b pb-3">
+                                    <h2 className="text-lg font-bold">환경 설정</h2>
+                                    <button onClick={copyShareLink} className="text-[10px] bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-full font-bold">주소 복사</button>
+                                </div>
+                                
+                                <form onSubmit={handleSaveSettings} className="space-y-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">학급/수업 명칭</label>
+                                        <input className="w-full p-3 border-2 border-slate-100 rounded-xl outline-none" 
+                                               value={config.className} onChange={e=>setConfig({...config, className:e.target.value})} required />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Google Form URL</label>
+                                        <input className="w-full p-3 border-2 border-slate-100 rounded-xl outline-none" 
+                                               placeholder="https://docs.google.com/forms/..." value={config.formUrl} onChange={e=>setConfig({...config, formUrl:e.target.value})} required />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <input className="w-full p-3 border-2 border-slate-100 rounded-xl outline-none" 
+                                               placeholder="학번 Entry ID" value={config.studentIdEntry} onChange={e=>setConfig({...config, studentIdEntry:e.target.value})} required />
+                                        <input className="w-full p-3 border-2 border-slate-100 rounded-xl outline-none" 
+                                               placeholder="이름 Entry ID" value={config.nameEntry} onChange={e=>setConfig({...config, nameEntry:e.target.value})} required />
+                                    </div>
+                                    <input className="w-full p-3 border-2 border-slate-100 rounded-xl outline-none" 
+                                           placeholder="사유 Entry ID (Google Form 문항 ID)" value={config.reasonEntry} onChange={e=>setConfig({...config, reasonEntry:e.target.value})} />
+                                    
+                                    <button className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg mt-4">
+                                        서버에 설정 저장
+                                    </button>
+                                </form>
+                            </div>
+                        )}
+
+                        {msg.text && (
+                            <div className={`mt-6 p-4 rounded-2xl text-center font-bold text-sm border ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+                                {msg.text}
+                            </div>
+                        )}
+                    </main>
+
+                    <nav className="fixed bottom-0 w-full max-w-md bg-white border-t border-slate-100 flex justify-around p-3 pb-8 shadow-lg z-50">
+                        <button onClick={()=>setView('checkin')} className={`flex flex-col items-center gap-1 ${view==='checkin' ? 'text-indigo-600' : 'text-slate-300'}`}>
+                            <i className="fas fa-check-circle text-xl"></i>
+                            <span className="text-[9px] font-bold">출석체크</span>
+                        </button>
+                        <button onClick={()=>setView('settings')} className={`flex flex-col items-center gap-1 ${view==='settings' ? 'text-indigo-600' : 'text-slate-300'}`}>
+                            <i className="fas fa-cog text-xl"></i>
+                            <span className="text-[9px] font-bold">설정</span>
+                        </button>
+                    </nav>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
