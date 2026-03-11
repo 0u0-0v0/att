@@ -20,21 +20,26 @@
         :root { --primary: #ff85a1; --bg: #fdf2f8; }
         * { font-family: 'OngleipParkDahyeon', sans-serif !important; letter-spacing: -0.02em; }
         body { background-color: var(--bg); background-image: linear-gradient(#f9a8d415 1px, transparent 1px), linear-gradient(90deg, #f9a8d415 1px, transparent 1px); background-size: 20px 20px; }
+        
         #loading-screen { position: fixed; inset: 0; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease-out; }
         .floating { animation: floating 3s ease-in-out infinite; }
         @keyframes floating { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        
         .loading-bar-container { width: 150px; height: 4px; background: #eee; border-radius: 2px; overflow: hidden; margin-top: 20px; }
         .loading-bar { width: 100%; height: 100%; background: var(--primary); animation: loading-progress 2s infinite ease-in-out; transform-origin: left; }
         @keyframes loading-progress { 0% { transform: scaleX(0); } 50% { transform: scaleX(1); } 100% { transform: scaleX(0); transform-origin: right; } }
+
         .soft-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border-radius: 2.5rem; box-shadow: 0 12px 30px -5px rgba(244, 114, 182, 0.15); border: 2px solid white; }
         .bubble-btn { transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-bottom: 4px solid rgba(0,0,0,0.1); }
         .bubble-btn:active { transform: scale(0.96) translateY(2px); border-bottom-width: 1px; }
+        
+        .history-item { border-left: 6px solid var(--primary); }
     </style>
 </head>
 <body class="antialiased">
     <div id="loading-screen">
         <div class="text-rose-400 text-6xl mb-6 floating">†</div> 
-        <div class="text-rose-500 font-bold text-2xl tracking-tighter">시스템 로드 중..</div>
+        <div class="text-rose-500 font-bold text-2xl tracking-tighter">시스템을 불러오는 중..</div>
         <div class="loading-bar-container"><div class="loading-bar"></div></div>
     </div>
 
@@ -90,7 +95,6 @@
                             setConfig(data);
                         } else { setConfig(prev => ({ ...prev, id: appId })); }
                     })
-                    .catch(() => setConfig(prev => ({ ...prev, id: appId })))
                     .finally(() => setIsConfigLoading(false));
             };
 
@@ -109,33 +113,25 @@
                 finally { setIsLoading(false); }
             };
 
-            // ★ 전송 성공 보장 로직 ★
+            // 성공했던 fetch 전송 로직
             const handleCheckIn = async (e) => {
                 e.preventDefault();
-                if (!config.formUrl) return alert('환경 설정에서 폼 주소를 입력해주세요.');
-                
+                if (!config.formUrl) return alert('설정에서 폼 주소를 입력해주세요.');
                 setIsLoading(true);
-                
                 try {
-                    // 1. URL 추출 및 가공
                     let baseUrl = config.formUrl.split('?')[0];
-                    if (baseUrl.endsWith('/viewform')) baseUrl = baseUrl.replace('/viewform', '/formResponse');
-                    else if (baseUrl.endsWith('/edit')) baseUrl = baseUrl.replace('/edit', '/formResponse');
-                    else if (!baseUrl.endsWith('/formResponse')) baseUrl = baseUrl + '/formResponse';
-
-                    // 2. Entry ID 정리 (숫자만 있어도 entry.을 붙여줌)
+                    baseUrl = baseUrl.replace('/viewform', '/formResponse').replace('/edit', '/formResponse');
+                    
                     const getEntryKey = (val) => {
                         let s = String(val).trim();
                         return s.startsWith('entry.') ? s : `entry.${s}`;
                     };
 
-                    // 3. 전송 데이터 생성
                     const params = new URLSearchParams();
                     params.append(getEntryKey(config.studentIdEntry), studentId);
                     params.append(getEntryKey(config.nameEntry), studentName);
                     if (config.reasonEntry) params.append(getEntryKey(config.reasonEntry), reason);
 
-                    // 4. 구글 폼으로 전송 (no-cors 방식은 브라우저에서 성공 여부를 가르쳐주지 않지만 전송은 됨)
                     await fetch(baseUrl, {
                         method: 'POST',
                         mode: 'no-cors',
@@ -143,12 +139,10 @@
                         body: params.toString()
                     });
 
-                    // 5. 성공 메시지 및 초기화
-                    showToast('success', `${studentName}님, 출석이 완료되었습니다.`);
+                    showToast('success', `${studentName}님, 출석 완료!`);
                     setStudentId(''); setStudentName(''); setReason('');
                 } catch (err) {
-                    showToast('error', '전송 과정에서 문제가 발생했습니다.');
-                    console.error(err);
+                    showToast('error', '전송 실패');
                 } finally {
                     setIsLoading(false);
                 }
@@ -165,6 +159,7 @@
                         if (data.error) showToast('error', data.error);
                         else setHistoryData(data.history);
                     })
+                    .catch(() => showToast('error', '기록을 가져오지 못했습니다.'))
                     .finally(() => setIsLoading(false));
             };
 
@@ -186,6 +181,7 @@
 
             return (
                 <div className="max-w-md mx-auto min-h-screen flex flex-col relative bg-[#fdf2f8]/40 border-x border-pink-100 pb-32">
+                    {/* 상단 알림 팝업 */}
                     {msg.text && (
                         <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[200] w-[85%] max-w-xs animate-in slide-in-from-top duration-500">
                             <div className={`p-4 rounded-[1.5rem] text-center font-bold text-sm shadow-2xl border-2 ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
@@ -199,7 +195,7 @@
 
                     <header className="px-8 pt-16 pb-6 text-center">
                         <div className="inline-block px-8 py-3 rounded-full bg-white shadow-sm border border-pink-100 mb-4 transform -rotate-1">
-                            <h1 className="text-2xl font-bold text-pink-500">£ {config.className || "출석 시스템"} ¢</h1>
+                            <h1 className="text-2xl font-bold text-pink-500">£ {config.className || "출석 관리"} ¢</h1>
                         </div>
                     </header>
 
@@ -215,8 +211,8 @@
                                 <form onSubmit={handleCheckIn} className="space-y-4">
                                     <input className="w-full p-5 rounded-[2rem] border-2 border-white bg-white/70 focus:border-pink-300 outline-none font-bold text-xl shadow-sm" placeholder="학번 (예: 30421)" value={studentId} onChange={e=>setStudentId(e.target.value)} required />
                                     <input className="w-full p-5 rounded-[2rem] border-2 border-white bg-white/70 focus:border-pink-300 outline-none font-bold text-xl shadow-sm" placeholder="성명 입력" value={studentName} onChange={e=>setStudentName(e.target.value)} required />
-                                    <textarea className="w-full p-5 rounded-[2rem] border-2 border-white bg-white/70 focus:border-pink-300 outline-none font-bold min-h-[120px] resize-none shadow-sm" placeholder="지각 조퇴 결석 시 사유 입력" value={reason} onChange={e=>setReason(e.target.value)} />
-                                    <button disabled={isLoading} className="bubble-btn w-full bg-pink-400 hover:bg-pink-500 text-white font-bold py-5 rounded-[2.5rem] shadow-xl text-xl mt-4">
+                                    <textarea className="w-full p-5 rounded-[2rem] border-2 border-white bg-white/70 focus:border-pink-300 outline-none font-bold min-h-[120px] resize-none shadow-sm" placeholder="지각 조퇴 결석 사유 입력" value={reason} onChange={e=>setReason(e.target.value)} />
+                                    <button disabled={isLoading} className="bubble-btn w-full bg-pink-400 hover:bg-pink-500 text-white font-bold py-5 rounded-[2.5rem] shadow-xl text-xl mt-4 flex items-center justify-center gap-2">
                                         {isLoading ? <i className="fa-solid fa-spinner animate-spin"></i> : "출석 완료하기"}
                                     </button>
                                 </form>
@@ -227,12 +223,14 @@
                                 <form onSubmit={fetchHistory} className="soft-card p-6 space-y-4">
                                     <input className="w-full p-4 rounded-2xl border-2 border-pink-50 outline-none font-bold" placeholder="학번" value={studentId} onChange={e=>setStudentId(e.target.value)} required />
                                     <input className="w-full p-4 rounded-2xl border-2 border-pink-50 outline-none font-bold" placeholder="성명" value={studentName} onChange={e=>setStudentName(e.target.value)} required />
-                                    <button className="w-full bg-pink-400 text-white font-bold py-4 rounded-2xl">조회하기</button>
+                                    <button disabled={isLoading} className="w-full bg-pink-400 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2">
+                                        {isLoading ? <i className="fa-solid fa-spinner animate-spin"></i> : "기록 조회하기"}
+                                    </button>
                                 </form>
                                 {historyData && (
                                     <div className="space-y-3 pb-10">
                                         {historyData.length > 0 ? historyData.map((h, i) => (
-                                            <div key={i} className="soft-card p-5 flex justify-between items-center border-l-8 border-pink-200">
+                                            <div key={i} className="soft-card p-5 flex justify-between items-center history-item animate-in fade-in">
                                                 <div><p className="text-[10px] text-slate-400 font-bold">{h.date}</p><p className="font-bold text-slate-700 text-lg">{h.reason ? `📝 ${h.reason}` : "✅ 정상 출석"}</p></div>
                                                 <span className="text-3xl text-pink-100">♤</span>
                                             </div>
@@ -243,18 +241,19 @@
                         ) : (
                             <div className="space-y-5 animate-in slide-in-from-bottom">
                                 <div className="flex justify-between items-center bg-white p-5 rounded-3xl border border-pink-100">
-                                    <h2 className="text-lg font-bold text-pink-500 flex items-center gap-2"><i className="fa-solid fa-sliders"></i> 환경 설정</h2>
+                                    <h2 className="text-lg font-bold text-pink-500">⚙️ 환경 설정</h2>
                                     <button onClick={copyShareLink} className="bubble-btn text-xs bg-pink-50 text-pink-500 px-5 py-2 rounded-full font-bold">주소 복사</button>
                                 </div>
                                 <form onSubmit={handleSaveSettings} className="soft-card p-6 space-y-5">
                                     <div className="space-y-4">
                                         <div><label className="text-[10px] ml-2 font-bold text-slate-400 uppercase">학급 명칭</label><input className="w-full p-3 border-b-2 border-pink-50 outline-none font-bold" value={config.className} onChange={e=>setConfig({...config, className:e.target.value})} required /></div>
-                                        <div><label className="text-[10px] ml-2 font-bold text-slate-400 uppercase">구글 폼 주소</label><input className="w-full p-3 border-b-2 border-pink-50 outline-none text-xs font-bold" value={config.formUrl} onChange={e=>setConfig({...config, formUrl:e.target.value})} required /></div>
+                                        <div><label className="text-[10px] ml-2 font-bold text-slate-400 uppercase">구글 폼 URL</label><input className="w-full p-3 border-b-2 border-pink-50 outline-none text-xs font-bold" value={config.formUrl} onChange={e=>setConfig({...config, formUrl:e.target.value})} required /></div>
+                                        <div><label className="text-[10px] ml-2 font-bold text-rose-400 italic">응답 시트 ID (조회용)</label><input className="w-full p-3 border-b-2 border-pink-50 outline-none text-[10px] font-bold text-rose-500" placeholder="기록 시트의 ID를 입력하세요" value={config.responseSheetId} onChange={e=>setConfig({...config, responseSheetId:e.target.value})} /></div>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div><label className="text-[10px] ml-2 font-bold text-slate-400 uppercase">학번 ID (숫자)</label><input className="w-full p-3 border-b-2 border-pink-50 outline-none font-bold" value={config.studentIdEntry} onChange={e=>setConfig({...config, studentIdEntry:e.target.value})} required /></div>
-                                            <div><label className="text-[10px] ml-2 font-bold text-slate-400 uppercase">이름 ID (숫자)</label><input className="w-full p-3 border-b-2 border-pink-50 outline-none font-bold" value={config.nameEntry} onChange={e=>setConfig({...config, nameEntry:e.target.value})} required /></div>
+                                            <div><label className="text-[10px] ml-2 font-bold text-slate-400 uppercase">학번 ID</label><input className="w-full p-3 border-b-2 border-pink-50 outline-none font-bold" value={config.studentIdEntry} onChange={e=>setConfig({...config, studentIdEntry:e.target.value})} required /></div>
+                                            <div><label className="text-[10px] ml-2 font-bold text-slate-400 uppercase">이름 ID</label><input className="w-full p-3 border-b-2 border-pink-50 outline-none font-bold" value={config.nameEntry} onChange={e=>setConfig({...config, nameEntry:e.target.value})} required /></div>
                                         </div>
-                                        <div><label className="text-[10px] ml-2 font-bold text-slate-400 uppercase">사유 ID (숫자)</label><input className="w-full p-3 border-b-2 border-pink-50 outline-none font-bold" value={config.reasonEntry} onChange={e=>setConfig({...config, reasonEntry:e.target.value})} /></div>
+                                        <div><label className="text-[10px] ml-2 font-bold text-slate-400 uppercase">사유 ID</label><input className="w-full p-3 border-b-2 border-pink-50 outline-none font-bold" value={config.reasonEntry} onChange={e=>setConfig({...config, reasonEntry:e.target.value})} /></div>
                                         <div className="relative">
                                             <label className="text-[10px] ml-2 font-bold text-pink-500 uppercase">🔒 관리 비번</label>
                                             <input type={showConfigPass ? "text" : "password"} className="w-full p-3 border-b-2 border-pink-100 outline-none font-bold pr-12" value={config.passcode} onChange={e=>setConfig({...config, passcode:e.target.value})} required />
@@ -270,18 +269,18 @@
                     <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[92%] max-w-sm bg-white/80 backdrop-blur-xl border border-pink-100 flex justify-around p-3 rounded-[3rem] shadow-2xl z-50">
                         <button onClick={()=>setView('checkin')} className={`flex flex-col items-center gap-1 py-2 px-5 rounded-2xl ${view==='checkin' ? 'text-pink-500 scale-110 font-bold' : 'text-slate-300'}`}><span className="text-2xl mb-1">🐾</span><span className="text-[10px] font-bold">출석하기</span></button>
                         <button onClick={()=>setView('history')} className={`flex flex-col items-center gap-1 py-2 px-5 rounded-2xl ${view==='history' ? 'text-pink-500 scale-110 font-bold' : 'text-slate-300'}`}><span className="text-2xl mb-1">🔍</span><span className="text-[10px] font-bold">조회하기</span></button>
-                        <button onClick={()=>{ setShowPassModal(true); }} className={`flex flex-col items-center gap-1 py-2 px-5 rounded-2xl ${view==='settings' ? 'text-pink-500 scale-110 font-bold' : 'text-slate-300'}`}><span className="text-2xl mb-1">⚙️</span><span className="text-[10px] font-bold">환경설정</span></button>
+                        <button onClick={()=>{ setPassInput(''); setPassError(false); setShowPassModal(true); }} className={`flex flex-col items-center gap-1 py-2 px-5 rounded-2xl ${view==='settings' ? 'text-pink-500 scale-110 font-bold' : 'text-slate-300'}`}><span className="text-2xl mb-1">⚙️</span><span className="text-[10px] font-bold">환경설정</span></button>
                     </nav>
 
                     {showPassModal && (
                         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-pink-900/20 backdrop-blur-md">
                             <div className="soft-card w-full max-w-xs p-10 text-center animate-in zoom-in duration-300">
-                                <h3 className="text-xl font-bold text-slate-700 mb-8">비밀번호 확인</h3>
+                                <h3 className="text-xl font-bold text-slate-700 mb-8 font-bold">비밀번호 확인</h3>
                                 <form onSubmit={verifyPassword} className="space-y-6">
                                     <input type="password" autoFocus className={`w-full p-4 rounded-2xl border-2 outline-none text-center text-3xl font-bold transition-all ${passError ? 'border-rose-400 bg-rose-50 animate-bounce' : 'border-pink-50 bg-pink-50/10'}`} value={passInput} onChange={(e)=>{setPassInput(e.target.value); setPassError(false);}} />
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button type="button" onClick={()=>setShowPassModal(false)} className="p-4 rounded-2xl bg-slate-100 font-bold">취소</button>
-                                        <button type="submit" className="p-4 rounded-2xl bg-pink-400 text-white font-bold">확인</button>
+                                    <div className="grid grid-cols-2 gap-4 pt-2">
+                                        <button type="button" onClick={()=>setShowPassModal(false)} className="p-4 rounded-2xl bg-slate-100 font-bold bubble-btn">취소</button>
+                                        <button type="submit" className="p-4 rounded-2xl bg-pink-400 text-white font-bold bubble-btn shadow-lg shadow-pink-200">확인</button>
                                     </div>
                                 </form>
                             </div>
