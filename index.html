@@ -132,4 +132,98 @@
                 <div className="max-w-md mx-auto min-h-screen flex flex-col relative bg-[#fdf2f8]/60 border-x border-pink-100 pb-32">
                     {msg.text && (
                         <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[200] w-[85%] max-w-xs animate-in slide-in-from-top duration-500">
-                            <div className={
+                            <div className={`p-4 rounded-[1.5rem] text-center font-bold text-sm shadow-2xl border-2 ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+                                {msg.text}
+                            </div>
+                        </div>
+                    )}
+
+                    <header className="px-8 pt-16 pb-6 text-center">
+                        <div className="inline-block px-8 py-3 rounded-full bg-white shadow-sm border border-pink-100 mb-4">
+                            <h1 className="text-2xl font-bold text-[#ff4d6d]">♤ {config.className || "출석 관리"} ♧</h1>
+                        </div>
+                    </header>
+
+                    <main className="p-6 flex-grow overflow-y-auto">
+                        {view === 'checkin' ? (
+                            <div className="space-y-6">
+                                <div className="soft-card p-6 text-center">
+                                    <div className="text-5xl font-bold text-slate-700 mb-2 tabular-nums">
+                                        {currentTime.toLocaleTimeString('ko-KR', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'})}
+                                    </div>
+                                    <div className="text-pink-400 text-xs font-bold tracking-widest uppercase">Real-time Check-in</div>
+                                </div>
+                                <form onSubmit={handleCheckIn} className="space-y-4">
+                                    <input className="w-full p-5 rounded-[2rem] border-2 border-white bg-white/80 focus:border-pink-300 outline-none font-bold text-xl" placeholder="학번 (예: 30401)" value={studentId} onChange={e=>setStudentId(e.target.value)} required />
+                                    <input className="w-full p-5 rounded-[2rem] border-2 border-white bg-white/80 focus:border-pink-300 outline-none font-bold text-xl" placeholder="성명" value={studentName} onChange={e=>setStudentName(e.target.value)} required />
+                                    <textarea className="w-full p-5 rounded-[2rem] border-2 border-white bg-white/80 focus:border-pink-300 outline-none font-bold min-h-[100px] resize-none" placeholder="사유 (선택사항)" value={reason} onChange={e=>setReason(e.target.value)} />
+                                    <button disabled={isLoading} className="bubble-btn w-full bg-[#ff4d6d] hover:bg-[#ff758f] text-white font-bold py-5 rounded-[2.5rem] shadow-xl text-xl mt-4">
+                                        {isLoading ? "전송 중..." : "출석 완료하기!"}
+                                    </button>
+                                </form>
+                            </div>
+                        ) : view === 'history' ? (
+                            <div className="space-y-6 animate-in slide-in-from-right">
+                                <h2 className="text-2xl font-bold text-[#ff4d6d] text-center">🔍 출석 기록 조회</h2>
+                                <form onSubmit={fetchHistory} className="soft-card p-6 space-y-4">
+                                    <input className="w-full p-4 rounded-2xl border-2 border-pink-50 font-bold outline-none" placeholder="학번" value={studentId} onChange={e=>setStudentId(e.target.value)} required />
+                                    <input className="w-full p-4 rounded-2xl border-2 border-pink-50 font-bold outline-none" placeholder="성명" value={studentName} onChange={e=>setStudentName(e.target.value)} required />
+                                    <button className="w-full bg-[#ff758f] text-white font-bold py-4 rounded-2xl bubble-btn">기록 찾아보기</button>
+                                </form>
+                                {historyData && (
+                                    <div className="space-y-3 pb-10">
+                                        {historyData.length > 0 ? historyData.map((h, i) => (
+                                            <div key={i} className="soft-card p-5 border-l-8 border-pink-200 flex justify-between items-center">
+                                                <div><p className="text-[10px] text-slate-400 font-bold">{h.date}</p><p className="font-bold text-slate-700 text-lg">{h.reason || "정상 출석 ✅"}</p></div>
+                                                <span className="text-3xl opacity-20">♤</span>
+                                            </div>
+                                        )) : <p className="text-center py-20 font-bold text-slate-400">조회된 기록이 없습니다.</p>}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-5 animate-in slide-in-from-bottom">
+                                <h2 className="text-lg font-bold text-[#ff4d6d] text-center italic">⚙️ Admin Settings</h2>
+                                <form onSubmit={handleSaveSettings} className="soft-card p-6 space-y-4">
+                                    <input className="w-full p-3 border-b-2 border-pink-50 outline-none font-bold" placeholder="학급 명칭" value={config.className} onChange={e=>setConfig({...config, className:e.target.value})} />
+                                    <input className="w-full p-3 border-b-2 border-pink-50 outline-none text-xs" placeholder="구글 폼 URL" value={config.formUrl} onChange={e=>setConfig({...config, formUrl:e.target.value})} />
+                                    <input className="w-full p-3 border-b-2 border-pink-50 outline-none text-xs font-bold text-pink-500" placeholder="응답 스프레드시트 ID" value={config.responseSheetId} onChange={e=>setConfig({...config, responseSheetId:e.target.value})} />
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input className="p-3 border-b-2 border-pink-50 outline-none" placeholder="학번 ID" value={config.studentIdEntry} onChange={e=>setConfig({...config, studentIdEntry:e.target.value})} />
+                                        <input className="p-3 border-b-2 border-pink-50 outline-none" placeholder="성명 ID" value={config.nameEntry} onChange={e=>setConfig({...config, nameEntry:e.target.value})} />
+                                    </div>
+                                    <input type="password" className="w-full p-3 border-b-2 border-pink-50 outline-none" placeholder="관리자 비번" value={config.passcode} onChange={e=>setConfig({...config, passcode:e.target.value})} />
+                                    <button className="bubble-btn w-full bg-slate-700 text-white font-bold py-4 rounded-2xl mt-4 shadow-lg">클라우드 설정 저장</button>
+                                </form>
+                            </div>
+                        )}
+                    </main>
+
+                    <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-white/90 backdrop-blur-xl border border-pink-100 flex justify-around p-3 rounded-[3rem] shadow-2xl z-50">
+                        <button onClick={()=>setView('checkin')} className={`flex flex-col items-center py-2 px-4 ${view==='checkin' ? 'text-[#ff4d6d] font-bold' : 'text-slate-300'}`}><span className="text-2xl">🐾</span><span className="text-[10px]">출석</span></button>
+                        <button onClick={()=>setView('history')} className={`flex flex-col items-center py-2 px-4 ${view==='history' ? 'text-[#ff4d6d] font-bold' : 'text-slate-300'}`}><span className="text-2xl">🔍</span><span className="text-[10px]">기록</span></button>
+                        <button onClick={()=>{ setPassInput(''); setPassError(false); setShowPassModal(true); }} className={`flex flex-col items-center py-2 px-4 ${view==='settings' ? 'text-[#ff4d6d] font-bold' : 'text-slate-300'}`}><span className="text-2xl">⚙️</span><span className="text-[10px]">설정</span></button>
+                    </nav>
+
+                    {showPassModal && (
+                        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-pink-900/10 backdrop-blur-sm">
+                            <div className="soft-card w-full max-w-[300px] p-8 text-center animate-in zoom-in">
+                                <h3 className="text-lg font-bold text-slate-700 mb-6">Password Check</h3>
+                                <form onSubmit={(e)=>{ e.preventDefault(); if(passInput === config.passcode){ setShowPassModal(false); setView('settings'); }else{ setPassError(true); setPassInput(''); } }}>
+                                    <input type="password" autoFocus className={`w-full p-4 rounded-xl border-2 outline-none text-center text-2xl font-bold ${passError ? 'border-rose-400' : 'border-pink-50'}`} value={passInput} onChange={(e)=>setPassInput(e.target.value)} />
+                                    <div className="flex gap-2 mt-6">
+                                        <button type="button" onClick={()=>setShowPassModal(false)} className="flex-1 p-3 rounded-xl bg-slate-100 text-slate-500 font-bold">취소</button>
+                                        <button type="submit" className="flex-1 p-3 rounded-xl bg-[#ff758f] text-white font-bold">확인</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
