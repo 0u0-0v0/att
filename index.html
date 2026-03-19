@@ -9,7 +9,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="출결관리">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/5663/5663119.png">
-    
     <link rel="manifest" href="manifest.json">
 
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -19,21 +18,42 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
+        /* 1. 폰트 정의 및 로딩 최적화 */
         @font-face {
             font-family: 'OngleipParkDahyeon';
             src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2') format('woff2');
-            font-weight: normal; font-display: swap;
+            font-weight: normal; 
+            font-style: normal;
+            font-display: swap; /* 폰트 로드 즉시 교체 */
         }
-        :root { --primary: #ff85a1; --bg: #fdf2f8; }
-        * { font-family: 'OngleipParkDahyeon', sans-serif !important; letter-spacing: -0.02em; }
+
+        /* 2. 무조건 폰트 고정 (가장 중요한 부분) */
+        /* 모든 요소(*), 입력창, 버튼, 텍스트박스에 강제로 적용 */
+        * { 
+            font-family: 'OngleipParkDahyeon', sans-serif !important; 
+            letter-spacing: -0.02em !important; 
+        }
+
         body {
-            background-color: var(--bg);
+            background-color: #fdf2f8;
             background-image: linear-gradient(#f9a8d415 1px, transparent 1px), linear-gradient(90deg, #f9a8d415 1px, transparent 1px);
             background-size: 20px 20px;
             -webkit-tap-highlight-color: transparent; 
-            user-select: none; -webkit-user-select: none;
+            user-select: none; 
+            -webkit-user-select: none;
         }
-        input, textarea { user-select: auto !important; -webkit-user-select: auto !important; }
+
+        /* 폼 요소들은 브라우저 기본값이 강하므로 다시 한번 명시 */
+        input, textarea, button, select, span, div, p, h1, h2, h3 {
+            font-family: 'OngleipParkDahyeon', sans-serif !important;
+        }
+
+        input, textarea { 
+            user-select: auto !important; 
+            -webkit-user-select: auto !important; 
+        }
+
+        /* 기존 디자인 스타일 */
         .soft-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-radius: 2.5rem; border: 2px solid white; box-shadow: 0 10px 25px -5px rgba(244, 114, 182, 0.1); }
         .bubble-btn { transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-bottom: 4px solid rgba(0,0,0,0.1); }
         .bubble-btn:active { transform: scale(0.96) translateY(2px); border-bottom-width: 1px; }
@@ -45,12 +65,11 @@
     <div id="root"></div>
 
     <script>
-        // 서비스 워커 등록
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('SW 등록 성공!', reg))
-                    .catch(err => console.log('SW 등록 실패!', err));
+                    .then(reg => console.log('SW 등록 성공'))
+                    .catch(err => console.log('SW 등록 실패'));
             });
         }
     </script>
