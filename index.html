@@ -17,23 +17,31 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
-        /* 폰트 정의: 폰트가 로드되지 않았을 때를 대비해 시스템 폰트 순서 지정 */
+        /* 1. 폰트 정의: block으로 설정하여 폰트 로드 전까지 기본폰트 노출 방지 */
         @font-face {
             font-family: 'OngleipParkDahyeon';
             src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2') format('woff2');
-            font-weight: normal; font-style: normal; font-display: block;
+            font-weight: normal; 
+            font-style: normal;
+            font-display: block; 
         }
 
-        /* 모바일 브라우저의 고집을 꺾는 강력한 설정 */
-        * { 
-            font-family: 'OngleipParkDahyeon', AppleSDGothicNeo-Regular, 'Malgun Gothic', sans-serif !important; 
+        /* 2. 모든 브라우저(삼성 인터넷 포함) 강제 적용 */
+        :root, html, body, #root, * { 
+            font-family: 'OngleipParkDahyeon', sans-serif !important; 
             letter-spacing: -0.02em !important; 
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* input창에서 글씨체가 풀리는 현상 방지 */
-        input, textarea, button, select, div, p, span {
-            font-family: 'OngleipParkDahyeon' !important;
-            font-size: 1rem;
+        /* 3. 브라우저가 개별적으로 폰트를 먹이는 태그들 전수 검거 */
+        input, textarea, button, select, option, span, div, p, h1, h2, h3, strong, a {
+            font-family: 'OngleipParkDahyeon', sans-serif !important;
+        }
+
+        /* 4. 입력 시 폰트 유지 */
+        input:focus, textarea:focus {
+            font-family: 'OngleipParkDahyeon', sans-serif !important;
+            outline: none;
         }
 
         body {
@@ -41,9 +49,9 @@
             background-image: linear-gradient(#f9a8d415 1px, transparent 1px), linear-gradient(90deg, #f9a8d415 1px, transparent 1px);
             background-size: 20px 20px;
             -webkit-tap-highlight-color: transparent;
-            -webkit-font-smoothing: antialiased;
         }
 
+        /* UI 디자인 스타일 */
         .soft-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-radius: 2.5rem; border: 2px solid white; box-shadow: 0 10px 25px -5px rgba(244, 114, 182, 0.1); }
         .bubble-btn { transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-bottom: 4px solid rgba(0,0,0,0.1); }
         .bubble-btn:active { transform: scale(0.96) translateY(2px); border-bottom-width: 1px; }
@@ -55,7 +63,6 @@
     <div id="root"></div>
 
     <script>
-        // 서비스 워커 등록 (선생님의 다른 앱 방식 적용)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -64,11 +71,11 @@
                         const installingWorker = reg.installing;
                         installingWorker.onstatechange = () => {
                             if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                window.location.reload();
+                                window.location.reload(); 
                             }
                         };
                     };
-                }).catch(e => console.error("SW Error", e));
+                }).catch(e => console.error("SW 등록 실패"));
             });
         }
     </script>
