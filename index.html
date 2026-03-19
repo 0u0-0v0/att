@@ -17,22 +17,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
-        /* 선생님 앱 방식의 폰트 정의 및 강제 적용 */
+        /* 폰트 정의: 폰트가 로드되지 않았을 때를 대비해 시스템 폰트 순서 지정 */
         @font-face {
             font-family: 'OngleipParkDahyeon';
             src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2') format('woff2');
-            font-weight: normal; font-style: normal; font-display: swap;
+            font-weight: normal; font-style: normal; font-display: block;
         }
 
-        /* 브라우저 고집을 꺾는 전체 강제 적용 */
-        html, body, #root, * { 
-            font-family: 'OngleipParkDahyeon', sans-serif !important; 
+        /* 모바일 브라우저의 고집을 꺾는 강력한 설정 */
+        * { 
+            font-family: 'OngleipParkDahyeon', AppleSDGothicNeo-Regular, 'Malgun Gothic', sans-serif !important; 
             letter-spacing: -0.02em !important; 
-            overscroll-behavior-y: contain;
         }
 
-        input, textarea, button, select, span, div, p, h1, h2, h3 {
-            font-family: 'OngleipParkDahyeon', sans-serif !important;
+        /* input창에서 글씨체가 풀리는 현상 방지 */
+        input, textarea, button, select, div, p, span {
+            font-family: 'OngleipParkDahyeon' !important;
+            font-size: 1rem;
         }
 
         body {
@@ -40,12 +41,9 @@
             background-image: linear-gradient(#f9a8d415 1px, transparent 1px), linear-gradient(90deg, #f9a8d415 1px, transparent 1px);
             background-size: 20px 20px;
             -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* 폼 요소 포커스 시 글꼴 유지 */
-        input:focus, textarea:focus { font-family: 'OngleipParkDahyeon', sans-serif !important; }
-
-        /* 디자인 스타일 */
         .soft-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-radius: 2.5rem; border: 2px solid white; box-shadow: 0 10px 25px -5px rgba(244, 114, 182, 0.1); }
         .bubble-btn { transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-bottom: 4px solid rgba(0,0,0,0.1); }
         .bubble-btn:active { transform: scale(0.96) translateY(2px); border-bottom-width: 1px; }
@@ -57,21 +55,20 @@
     <div id="root"></div>
 
     <script>
-        // 선생님의 잘 되는 앱 방식의 서비스 워커 등록
+        // 서비스 워커 등록 (선생님의 다른 앱 방식 적용)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => {
-                        reg.onupdatefound = () => {
-                            const installingWorker = reg.installing;
-                            installingWorker.onstatechange = () => {
-                                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    window.location.reload(); 
-                                }
-                            };
+                .then(reg => {
+                    reg.onupdatefound = () => {
+                        const installingWorker = reg.installing;
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                window.location.reload();
+                            }
                         };
-                    })
-                    .catch(err => console.log('SW 등록 실패:', err));
+                    };
+                }).catch(e => console.error("SW Error", e));
             });
         }
     </script>
@@ -139,19 +136,16 @@
                 try {
                     let actionUrl = config.formUrl.trim().split('?')[0];
                     actionUrl = actionUrl.replace('/viewform', '/formResponse').replace('/edit', '/formResponse');
-                    
                     const params = new URLSearchParams();
                     const formatKey = (key) => {
                         const k = String(key).trim();
                         return k.startsWith('entry.') ? k : `entry.${k}`;
                     };
-
                     params.append(formatKey(config.studentIdEntry), studentId.trim());
                     params.append(formatKey(config.nameEntry), studentName.trim());
                     if (config.reasonEntry) params.append(formatKey(config.reasonEntry), reason.trim());
 
                     await fetch(actionUrl, { method: 'POST', mode: 'no-cors', body: params.toString() });
-                    
                     showToast('success', `${studentName}님, 출석 완료! 🍀`);
                     setStudentId(''); setStudentName(''); setReason('');
                 } catch (err) { showToast('error', '전송 실패!'); }
